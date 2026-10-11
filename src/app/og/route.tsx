@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { connection } from "next/server";
-import { and, desc, eq, gte, isNotNull, lt } from "drizzle-orm";
+import { and, desc, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { airing, media } from "@/lib/schema";
 import { SITE_NAME } from "@/lib/site";
@@ -14,6 +14,7 @@ const POSTER_GAP = 16;
 const POSTERS_PER_ROW = 9;
 const WINDOW_SECONDS = 7 * 24 * 60 * 60;
 const CACHE_MS = 6 * 60 * 60 * 1000;
+const SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"];
 
 let cached: { png: ArrayBuffer; createdAt: number } | null = null;
 
@@ -30,18 +31,21 @@ async function loadPoster(url: string) {
 
 async function render() {
   const now = Math.floor(Date.now() / 1000);
-  const shows = db
-    .selectDistinct({ id: media.id, coverImage: media.coverImage, averageScore: media.averageScore })
+  const today = new Date();
+  const season = SEASONS[Math.floor(today.getMonth() / 3)];
+  const airingNow = db
+    .select({ id: airing.mediaId })
     .from(airing)
-    .innerJoin(media, eq(airing.mediaId, media.id))
-    .where(
-      and(
-        gte(airing.airingAt, now - WINDOW_SECONDS),
-        lt(airing.airingAt, now + WINDOW_SECONDS),
-        isNotNull(media.coverImage),
-      ),
+    .where(and(gte(airing.airingAt, now - WINDOW_SECONDS), lt(airing.airingAt, now + WINDOW_SECONDS)));
+
+  const shows = db
+    .select({ coverImage: media.coverImage })
+    .from(media)
+    .where(and(inArray(media.id, airingNow), isNotNull(media.coverImage)))
+    .orderBy(
+      desc(sql`${media.season} = ${season} and ${media.seasonYear} = ${today.getFullYear()}`),
+      desc(media.averageScore),
     )
-    .orderBy(desc(media.averageScore))
     .limit(POSTER_COUNT)
     .all();
 
@@ -84,7 +88,7 @@ async function render() {
             height: HEIGHT,
             display: "flex",
             backgroundImage:
-              "linear-gradient(to top, #10151c 0%, #10151c 22%, rgba(16, 21, 28, 0.75) 45%, rgba(16, 21, 28, 0) 75%)",
+              "linear-gradient(to top, #10151c 0%, #10151c 16%, rgba(16, 21, 28, 0.75) 32%, rgba(16, 21, 28, 0) 56%)",
           }}
         />
         <div style={{ position: "absolute", left: 56, bottom: 52, display: "flex", alignItems: "center", gap: 28 }}>

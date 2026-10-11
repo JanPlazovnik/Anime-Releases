@@ -6,7 +6,7 @@ import { io } from "next/cache";
 import { inArray } from "drizzle-orm";
 import { db, getSetting } from "@/lib/db";
 import { airing, media } from "@/lib/schema";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/site";
 import { isSyncing } from "@/lib/sync";
 import Calendar from "@/components/Calendar";
 
@@ -19,7 +19,6 @@ export async function generateMetadata(): Promise<Metadata> {
       url: "/",
       title: SITE_TITLE,
       description: SITE_DESCRIPTION,
-      siteName: SITE_NAME,
       type: "website",
       images: [image],
     },
