@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -8,8 +9,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Releases",
-  description: "AniList airing calendar",
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+};
+
+export const viewport: Viewport = {
+  themeColor: "#3db4f2",
 };
 
 const themeScript = `try {

@@ -1,12 +1,37 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { io } from "next/cache";
 import { eq, inArray } from "drizzle-orm";
 import { db, getSetting } from "@/lib/db";
 import { airing, listEntries, media } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/session";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/site";
 import { isSyncing } from "@/lib/sync";
 import Calendar from "@/components/Calendar";
+
+export async function generateMetadata(): Promise<Metadata> {
+  await connection();
+  const image = { url: "/og", width: 1200, height: 630, alt: SITE_TITLE };
+  return {
+    metadataBase: new URL(process.env.APP_URL!),
+    openGraph: {
+      url: "/",
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      siteName: SITE_NAME,
+      type: "website",
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      images: [image],
+    },
+  };
+}
 
 export default function Page() {
   return (
