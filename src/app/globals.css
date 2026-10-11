@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --page: #f8fafd;
+  --surface: #ffffff;
+  --raised: #f0f4f9;
+  --line: #dde3ea;
+  --ink: #1f1f1f;
+  --muted: #444746;
+  --subtle: #747775;
+  --hover: rgb(68 71 70 / 0.08);
+  --chip: #e1e5ea;
+  --primary: #3db4f2;
+  --on-primary: #0b1622;
+  --watching: #68d639;
+  --planning: #02a9ff;
+  --paused: #f779a4;
+  --other: #616161;
+}
+
+.dark {
+  color-scheme: dark;
+  --page: #10151c;
+  --surface: #171d25;
+  --raised: #1f2630;
+  --line: #262e39;
+  --ink: #e3e7ec;
+  --muted: #a2abb6;
+  --subtle: #78838f;
+  --hover: rgb(162 171 182 / 0.1);
+  --chip: #2b3440;
+  --primary: #3db4f2;
+  --on-primary: #0b1622;
+  --other: #56606d;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-hover: var(--hover);
+  --color-chip: var(--chip);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-watching: var(--watching);
+  --color-planning: var(--planning);
+  --color-paused: var(--paused);
+  --color-other: var(--other);
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button,
+  label,
+  img,
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+}
+
+@keyframes popover-out {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.animate-progress-slide {
+  animation: progress-slide 1.2s ease-in-out infinite;
+}
+
+.animate-popover-in {
+  animation: popover-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.animate-popover-out {
+  animation: popover-out 120ms ease-in forwards;
+}
