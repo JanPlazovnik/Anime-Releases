@@ -24,7 +24,7 @@ export default function Menu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={close} />
-          <div className="animate-popover-in absolute right-0 top-full z-50 mt-1 min-w-48 origin-top-right overflow-hidden rounded-lg bg-raised py-2 shadow-xl ring-1 ring-black/5">
+          <div className="animate-popover-in absolute right-0 top-full z-50 mt-1 min-w-48 origin-top-right overflow-hidden rounded-xl bg-raised py-2 shadow-xl ring-1 ring-black/5">
             {children(close)}
           </div>
         </>

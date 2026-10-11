@@ -395,23 +395,28 @@ export default function Calendar({
               buttonClassName="flex h-12 w-12 items-center justify-center rounded-full hover:bg-hover"
             >
               {() => (
-                <div className="flex w-72 flex-col items-center gap-3 px-4 pb-2 pt-3">
-                  <img src={viewer.avatar} alt="" className="h-20 w-20 rounded-full" />
-                  <p className="text-xl">Hi, {viewer.name}!</p>
-                  <a
-                    href={`https://anilist.co/user/${viewer.name}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-[10px] border border-subtle px-5 py-2 text-sm font-medium text-primary hover:bg-hover"
-                  >
-                    View AniList profile
-                  </a>
-                  <form action="/api/auth/logout" method="post" className="mt-2 w-full">
-                    <button className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-surface py-3 text-sm font-medium hover:bg-hover">
-                      <Icon name="logout" />
-                      Sign out
-                    </button>
-                  </form>
+                <div className="w-64">
+                  <div className="flex items-center gap-3 px-4 pb-3 pt-1">
+                    <img src={viewer.avatar} alt="" className="h-10 w-10 shrink-0 rounded-[10px]" />
+                    <p className="truncate text-sm font-medium">{viewer.name}</p>
+                  </div>
+                  <div className="border-t border-line pt-2">
+                    <a
+                      href={`https://anilist.co/user/${viewer.name}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-hover"
+                    >
+                      <Icon name="openInNew" className="text-muted" />
+                      View AniList profile
+                    </a>
+                    <form action="/api/auth/logout" method="post">
+                      <button className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-hover">
+                        <Icon name="logout" className="text-muted" />
+                        Sign out
+                      </button>
+                    </form>
+                  </div>
                 </div>
               )}
             </Menu>
