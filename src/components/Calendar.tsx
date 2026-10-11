@@ -1739,6 +1739,8 @@ function Popover({
     const expandedSnap =
       collapsedHeight && `${Math.min(collapsedHeight + expandableHeight + sheetTopGap, window.innerHeight)}px`;
     const snapPoints = expandedSnap && expandableHeight > 0 ? [firstSnap, expandedSnap] : [firstSnap];
+    const contentOverflows =
+      collapsedHeight !== null && collapsedHeight + expandableHeight + sheetTopGap > window.innerHeight;
     return (
       <>
         <div
@@ -1765,7 +1767,11 @@ function Popover({
             >
               <Drawer.Title className="sr-only">{label}</Drawer.Title>
               <div className="absolute left-1/2 top-2 z-10 h-1.5 w-10 -translate-x-1/2 rounded-full bg-white/70" />
-              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-t-3xl">
+              <div
+                className={`min-h-0 flex-1 overscroll-contain rounded-t-3xl ${
+                  sheetExpanded && contentOverflows ? "overflow-y-auto" : "overflow-clip"
+                }`}
+              >
                 <div ref={setSheetBody} className="flex flex-col pb-[env(safe-area-inset-bottom)]">
                   {children(close, sheetExpanded)}
                 </div>
@@ -1868,7 +1874,7 @@ function EventPopover({
 
             <div className="flex gap-4 px-5">
               {event.coverImage && (
-                <div className="relative -mt-14 aspect-[2/3] w-24 shrink-0 self-start overflow-hidden rounded-lg bg-chip shadow-lg ring-4 ring-raised">
+                <div className="relative -mt-14 aspect-[2/3] w-24 shrink-0 self-start overflow-clip rounded-lg bg-chip shadow-lg ring-4 ring-raised">
                   <img
                     src={event.coverImage}
                     alt=""
@@ -1890,7 +1896,7 @@ function EventPopover({
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 py-4 text-sm">
+            <div className={`flex flex-col gap-3 px-5 py-4 text-sm ${isMobile ? "" : "min-h-0 overflow-y-auto"}`}>
               <div className="flex select-none flex-wrap items-center gap-1.5">
                 {status && (
                   <span className="flex items-center gap-1.5 rounded-md bg-chip px-2.5 py-0.5 text-xs font-medium">
@@ -1923,7 +1929,7 @@ function EventPopover({
                     ref={(el) => {
                       if (el) setFullHeight(el.scrollHeight);
                     }}
-                    className={`overflow-hidden whitespace-pre-line text-muted transition-[max-height] duration-300 ease-out ${
+                    className={`overflow-clip whitespace-pre-line text-muted transition-[max-height] duration-300 ease-out ${
                       !showFull && fullHeight > DESCRIPTION_COLLAPSED_HEIGHT
                         ? "[mask-image:linear-gradient(to_bottom,black_60%,transparent)]"
                         : ""
