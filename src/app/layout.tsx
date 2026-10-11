@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#3db4f2",
+  viewportFit: "cover",
 };
 
 const themeScript = `try {
