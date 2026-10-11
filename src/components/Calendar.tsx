@@ -468,6 +468,15 @@ export default function Calendar({
               </SidebarSection>
             )}
             <EpisodeLists events={visible} signedIn={viewer !== null} onSelect={onSelect} />
+            <p className="mt-auto flex flex-col px-3 pt-4 text-xs leading-5 text-subtle">
+              <span>Not affiliated with AniList</span>
+              <span>
+                Data from{" "}
+                <a href="https://anilist.co" target="_blank" rel="noreferrer" className="hover:text-muted hover:underline">
+                  AniList
+                </a>
+              </span>
+            </p>
           </div>
         </aside>
 
