@@ -3,37 +3,37 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --page: #f8fafd;
+  --page: #f7f5fa;
   --surface: #ffffff;
-  --raised: #f0f4f9;
-  --line: #dde3ea;
-  --ink: #1f1f1f;
-  --muted: #444746;
-  --subtle: #747775;
-  --hover: rgb(68 71 70 / 0.08);
-  --chip: #e1e5ea;
+  --raised: #f2eff6;
+  --line: #e2dde9;
+  --ink: #1f1b24;
+  --muted: #4a4452;
+  --subtle: #7a7385;
+  --hover: rgb(74 68 82 / 0.08);
+  --chip: #e8e3ee;
   --primary: #3db4f2;
   --on-primary: #0b1622;
   --watching: #68d639;
   --planning: #02a9ff;
   --paused: #f779a4;
-  --other: #616161;
+  --other: #6b6478;
 }
 
 .dark {
   color-scheme: dark;
-  --page: #10151c;
-  --surface: #171d25;
-  --raised: #1f2630;
-  --line: #262e39;
-  --ink: #e3e7ec;
-  --muted: #a2abb6;
-  --subtle: #78838f;
-  --hover: rgb(162 171 182 / 0.1);
-  --chip: #2b3440;
+  --page: #141119;
+  --surface: #1c1823;
+  --raised: #26212e;
+  --line: #312b3a;
+  --ink: #e9e5f0;
+  --muted: #a59fb0;
+  --subtle: #7d7689;
+  --hover: rgb(165 159 176 / 0.1);
+  --chip: #312b3a;
   --primary: #3db4f2;
   --on-primary: #0b1622;
-  --other: #56606d;
+  --other: #5c5568;
 }
 
 @theme inline {

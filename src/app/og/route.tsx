@@ -55,7 +55,7 @@ async function render() {
 
   const image = new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#10151c" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#141119" }}>
         <div
           style={{
             position: "absolute",
@@ -88,7 +88,7 @@ async function render() {
             height: HEIGHT,
             display: "flex",
             backgroundImage:
-              "linear-gradient(to top, #10151c 0%, #10151c 16%, rgba(16, 21, 28, 0.75) 32%, rgba(16, 21, 28, 0) 56%)",
+              "linear-gradient(to top, #141119 0%, #141119 16%, rgba(20, 17, 25, 0.75) 32%, rgba(20, 17, 25, 0) 56%)",
           }}
         />
         <div style={{ position: "absolute", left: 56, bottom: 52, display: "flex", alignItems: "center", gap: 28 }}>
@@ -100,7 +100,7 @@ async function render() {
             </g>
             <path d="M15.5 15.5 22 19l-6.5 3.5z" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round" />
           </svg>
-          <div style={{ fontSize: 68, color: "#e3e7ec", letterSpacing: -1 }}>{SITE_NAME}</div>
+          <div style={{ fontSize: 68, color: "#e9e5f0", letterSpacing: -1 }}>{SITE_NAME}</div>
         </div>
       </div>
     ),
