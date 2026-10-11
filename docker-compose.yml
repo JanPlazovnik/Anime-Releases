@@ -1,6 +1,9 @@
 services:
   anime-episodes:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     restart: unless-stopped
     env_file: .env
     ports:
