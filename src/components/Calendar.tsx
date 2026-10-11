@@ -86,6 +86,20 @@ function startOfWeek(d: Date) {
   return addDays(startOfDay(d), -((d.getDay() + 6) % 7));
 }
 
+function formatDateParam(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function readUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const match = params.get("date")?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const date = match && new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return {
+    view: params.get("view") === "week" ? ("week" as const) : ("month" as const),
+    cursor: date && !Number.isNaN(date.getTime()) ? date : startOfDay(new Date()),
+  };
+}
+
 function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
@@ -255,8 +269,12 @@ export default function Calendar({
 }) {
   const router = useRouter();
   const isClient = useSyncExternalStore(subscribeNothing, () => true, () => false);
-  const [view, setView] = useState<"month" | "week">("month");
-  const [cursor, setCursor] = useState(() => startOfDay(new Date()));
+  const [view, setView] = useState<"month" | "week">(() =>
+    typeof window === "undefined" ? "month" : readUrlState().view,
+  );
+  const [cursor, setCursor] = useState(() =>
+    typeof window === "undefined" ? startOfDay(new Date()) : readUrlState().cursor,
+  );
   const [enabled, setEnabled] = useState(() => new Set(Object.keys(STATUSES)));
   const [showAll, setShowAll] = useState(initialShowAll);
   const [moreList, setMoreList] = useState<{ groups: EpisodeGroup[]; rect: DOMRect } | null>(null);
@@ -272,6 +290,16 @@ export default function Calendar({
     typeof window === "undefined" ? "system" : ((localStorage.getItem("theme") as Theme | null) ?? "system"),
   );
   const busy = syncing || serverSyncing;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (view === "week") params.set("view", view);
+    else params.delete("view");
+    if (dayKey(cursor) === dayKey(new Date())) params.delete("date");
+    else params.set("date", formatDateParam(cursor));
+    const query = params.toString();
+    history.replaceState(history.state, "", `${query ? `?${query}` : window.location.pathname}${window.location.hash}`);
+  }, [view, cursor]);
 
   useEffect(() => {
     const source = new EventSource("/api/events");
