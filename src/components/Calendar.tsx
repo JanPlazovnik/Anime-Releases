@@ -2,7 +2,20 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Logo, type ICONS } from "./icons";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ExternalLink,
+  LogOut,
+  Menu as MenuIcon,
+  RefreshCw,
+  Settings,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { Logo } from "./icons";
 import Menu, { MenuItem } from "./Menu";
 import {
   authorizeUrl,
@@ -195,14 +208,14 @@ function layoutDay(groups: EpisodeGroup[]) {
 const subscribeNothing = () => () => {};
 
 function IconButton({
-  icon,
+  icon: Icon,
   title,
   onClick,
   disabled,
   className = "",
   children,
 }: {
-  icon: keyof typeof ICONS;
+  icon: LucideIcon;
   title: string;
   onClick: () => void;
   disabled?: boolean;
@@ -217,7 +230,7 @@ function IconButton({
       aria-label={title}
       className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-hover disabled:opacity-60 ${className}`}
     >
-      <Icon name={icon} className="h-6 w-6" />
+      <Icon className="h-6 w-6" />
       {children}
     </button>
   );
@@ -395,7 +408,7 @@ export default function Calendar({
     <div className="flex h-full flex-col">
       <header className="flex h-16 shrink-0 select-none items-center gap-1 px-2">
         <div className="flex w-[246px] shrink-0 items-center gap-1">
-          <IconButton icon="menu" title="Main menu" onClick={() => setSidebarOpen(!sidebarOpen)} />
+          <IconButton icon={MenuIcon} title="Main menu" onClick={() => setSidebarOpen(!sidebarOpen)} />
           <Logo className="ml-1 h-9 w-9 shrink-0" />
           <span className="ml-1.5 whitespace-nowrap text-lg text-muted">{SITE_NAME}</span>
         </div>
@@ -405,14 +418,14 @@ export default function Calendar({
         >
           Today
         </button>
-        <IconButton icon="chevronLeft" title={view === "month" ? "Previous month" : "Previous week"} onClick={() => step(-1)} />
-        <IconButton icon="chevronRight" title={view === "month" ? "Next month" : "Next week"} onClick={() => step(1)} />
+        <IconButton icon={ChevronLeft} title={view === "month" ? "Previous month" : "Previous week"} onClick={() => step(-1)} />
+        <IconButton icon={ChevronRight} title={view === "month" ? "Next month" : "Next week"} onClick={() => step(1)} />
         <h1 className="ml-3 truncate text-[22px]">{title}</h1>
 
         <div className="ml-auto flex items-center gap-1">
           {viewer && (
             <IconButton
-              icon="refresh"
+              icon={RefreshCw}
               title={busy ? "Syncing…" : syncTitle}
               onClick={() => session && refreshList(session)}
               disabled={busy || onCooldown}
@@ -423,7 +436,7 @@ export default function Calendar({
           )}
           <Menu
             label="Settings"
-            button={<Icon name="settings" className="h-6 w-6" />}
+            button={<Settings className="h-6 w-6" />}
             buttonClassName="flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-hover"
           >
             {(close) => (
@@ -437,7 +450,7 @@ export default function Calendar({
                       close();
                     }}
                   >
-                    <Icon name="check" className={theme === t ? "" : "invisible"} />
+                    <Check className={`h-5 w-5 shrink-0 ${theme === t ? "" : "invisible"}`} />
                     {THEMES[t]}
                   </MenuItem>
                 ))}
@@ -474,14 +487,14 @@ export default function Calendar({
                       rel="noreferrer"
                       className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-hover"
                     >
-                      <Icon name="openInNew" className="text-muted" />
+                      <ExternalLink className="h-5 w-5 shrink-0 text-muted" />
                       View AniList profile
                     </a>
                     <button
                       onClick={signOut}
                       className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-hover"
                     >
-                      <Icon name="logout" className="text-muted" />
+                      <LogOut className="h-5 w-5 shrink-0 text-muted" />
                       Sign out
                     </button>
                   </div>
@@ -611,7 +624,7 @@ function SidebarSection({ title, count, children }: { title: string; count?: num
         {title}
         <span className="flex items-center gap-2">
           {count ? <span className="text-xs text-muted">{count}</span> : null}
-          <Icon name="expandLess" className={`transition-transform duration-200 ${open ? "" : "rotate-180"}`} />
+          <ChevronUp className={`h-5 w-5 shrink-0 transition-transform duration-200 ${open ? "" : "rotate-180"}`} />
         </span>
       </button>
       <div
@@ -1046,14 +1059,14 @@ function EventPopover({
                 title="Open on AniList"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
               >
-                <Icon name="openInNew" />
+                <ExternalLink className="h-5 w-5" />
               </a>
               <button
                 onClick={close}
                 title="Close"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
               >
-                <Icon name="close" />
+                <X className="h-5 w-5" />
               </button>
             </div>
           </div>
