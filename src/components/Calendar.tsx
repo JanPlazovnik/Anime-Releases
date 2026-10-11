@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, typ
 import { useRouter } from "next/navigation";
 import { Icon, Logo, type ICONS } from "./icons";
 import Menu, { MenuItem } from "./Menu";
+import { SITE_NAME } from "@/lib/site";
 
 export type CalendarEvent = {
   id: number;
@@ -330,7 +331,7 @@ export default function Calendar({
         <div className="flex w-[246px] shrink-0 items-center gap-1">
           <IconButton icon="menu" title="Main menu" onClick={() => setSidebarOpen(!sidebarOpen)} />
           <Logo className="ml-1 h-9 w-9 shrink-0" />
-          <span className="ml-1.5 truncate text-[22px] text-muted">Releases</span>
+          <span className="ml-1.5 whitespace-nowrap text-lg text-muted">{SITE_NAME}</span>
         </div>
         <button
           onClick={() => setCursor(startOfDay(new Date()))}
