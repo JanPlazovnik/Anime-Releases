@@ -4,6 +4,16 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, typ
 import { useRouter } from "next/navigation";
 import { Icon, Logo, type ICONS } from "./icons";
 import Menu, { MenuItem } from "./Menu";
+import {
+  authorizeUrl,
+  clearSession,
+  InvalidTokenError,
+  loadSession,
+  readTokenFromHash,
+  refreshEntries,
+  signIn,
+  type Session,
+} from "@/lib/anilist-browser";
 import { SITE_NAME } from "@/lib/site";
 
 export type CalendarEvent = {
@@ -28,9 +38,7 @@ export type CalendarEvent = {
 
 type Airing = Pick<CalendarEvent, "id" | "mediaId" | "episode" | "airingAt">;
 type Show = Omit<CalendarEvent, keyof Airing | "listStatus" | "progress"> & { id: number };
-type Entry = { mediaId: number; listStatus: string; progress: number };
 
-type Viewer = { id: number; name: string; avatar: string };
 type Theme = "system" | "light" | "dark";
 type OnSelect = (event: CalendarEvent, rect: DOMRect, firstEpisode?: number) => void;
 
@@ -48,6 +56,8 @@ const MONTH_CHIP_HEIGHT = 22;
 const POPOVER_WIDTH = 448;
 const LIST_POPOVER_WIDTH = 320;
 const MAX_LANES = 3;
+const LIST_TTL_MS = 15 * 60 * 1000;
+const SYNC_COOLDOWN_MS = 60 * 1000;
 const SIDEBAR_LIMIT = 8;
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -216,8 +226,7 @@ function IconButton({
 export default function Calendar({
   airings,
   shows,
-  entries,
-  viewer,
+  clientId,
   initialShowAll,
   lastSync,
   syncError,
@@ -225,8 +234,7 @@ export default function Calendar({
 }: {
   airings: Airing[];
   shows: Show[];
-  entries: Entry[];
-  viewer: Viewer | null;
+  clientId: string;
   initialShowAll: boolean;
   lastSync: number;
   syncError: string;
@@ -239,7 +247,12 @@ export default function Calendar({
   const [enabled, setEnabled] = useState(() => new Set(Object.keys(STATUSES)));
   const [showAll, setShowAll] = useState(initialShowAll);
   const [moreList, setMoreList] = useState<{ groups: EpisodeGroup[]; rect: DOMRect } | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [session, setSession] = useState<Session | null>(() =>
+    typeof window === "undefined" ? null : loadSession(),
+  );
+  const [syncing, setSyncing] = useState(
+    () => typeof window !== "undefined" && window.location.hash.includes("access_token"),
+  );
   const [selected, setSelected] = useState<{ id: number; rect: DOMRect; firstEpisode?: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<Theme>(() =>
@@ -253,8 +266,59 @@ export default function Calendar({
     return () => source.close();
   }, [router]);
 
+  useEffect(() => {
+    const fromHash = readTokenFromHash();
+    if (!fromHash) return;
+    signIn(fromHash.token, fromHash.expiresAt)
+      .then(setSession)
+      .catch((err) => {
+        console.error("Sign in failed:", err);
+        alert("Signing in with AniList failed, please try again.");
+      })
+      .finally(() => setSyncing(false));
+  }, []);
+
+  const [, setCooldownEnded] = useState(0);
+  const fetchedAt = session?.fetchedAt;
+  useEffect(() => {
+    if (!fetchedAt) return;
+    const remaining = fetchedAt + SYNC_COOLDOWN_MS - Date.now();
+    if (remaining <= 0) return;
+    const timeout = setTimeout(() => setCooldownEnded(Date.now()), remaining);
+    return () => clearTimeout(timeout);
+  }, [fetchedAt]);
+
+  const token = session?.token;
+  useEffect(() => {
+    if (!token) return;
+    const refreshIfStale = () => {
+      const current = loadSession();
+      if (current && Date.now() - current.fetchedAt > LIST_TTL_MS) refreshList(current);
+    };
+    refreshIfStale();
+    document.addEventListener("visibilitychange", refreshIfStale);
+    return () => document.removeEventListener("visibilitychange", refreshIfStale);
+  }, [token]);
+
+  function refreshList(current: Session) {
+    setSyncing(true);
+    refreshEntries(current)
+      .then(setSession)
+      .catch((err) => {
+        if (err instanceof InvalidTokenError) {
+          clearSession();
+          setSession(null);
+        } else {
+          console.error("List sync failed:", err);
+        }
+      })
+      .finally(() => setSyncing(false));
+  }
+
   if (!isClient) return null;
 
+  const viewer = session?.viewer ?? null;
+  const entries = session?.entries ?? [];
   const showsById = new Map(shows.map((show) => [show.id, show]));
   const entriesByMedia = new Map(entries.map((entry) => [entry.mediaId, entry]));
   const events: CalendarEvent[] = airings.map((a) => {
@@ -283,12 +347,11 @@ export default function Calendar({
     );
   };
 
-  const sync = async () => {
-    setSyncing(true);
-    const res = await fetch("/api/sync", { method: "POST" });
-    setSyncing(false);
-    if (!res.ok) alert((await res.json()).error);
-    router.refresh();
+  const onCooldown = session !== null && Date.now() - session.fetchedAt < SYNC_COOLDOWN_MS;
+
+  const signOut = () => {
+    clearSession();
+    setSession(null);
   };
 
   const toggleShowAll = () => {
@@ -319,11 +382,14 @@ export default function Calendar({
     view === "month" || weekStart.getMonth() === weekEnd.getMonth()
       ? cursor.toLocaleDateString([], { month: "long", year: "numeric" })
       : `${weekStart.toLocaleDateString([], { month: "short" })} – ${weekEnd.toLocaleDateString([], { month: "short", year: "numeric" })}`;
-  const syncTitle = syncError
-    ? `Last sync failed: ${syncError}`
+  const scheduleStatus = syncError
+    ? `Schedule sync failed: ${syncError}`
     : lastSync
-      ? `Synced ${new Date(lastSync).toLocaleString()}`
-      : "Not synced yet";
+      ? `Schedule synced ${new Date(lastSync).toLocaleString()}`
+      : "Schedule not synced yet";
+  const syncTitle = session
+    ? `List synced ${new Date(session.fetchedAt).toLocaleString()} · ${scheduleStatus}`
+    : scheduleStatus;
 
   return (
     <div className="flex h-full flex-col">
@@ -348,8 +414,8 @@ export default function Calendar({
             <IconButton
               icon="refresh"
               title={busy ? "Syncing…" : syncTitle}
-              onClick={sync}
-              disabled={busy}
+              onClick={() => session && refreshList(session)}
+              disabled={busy || onCooldown}
               className={busy ? "[&>svg]:animate-spin" : ""}
             >
               {syncError && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />}
@@ -411,19 +477,20 @@ export default function Calendar({
                       <Icon name="openInNew" className="text-muted" />
                       View AniList profile
                     </a>
-                    <form action="/api/auth/logout" method="post">
-                      <button className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-hover">
-                        <Icon name="logout" className="text-muted" />
-                        Sign out
-                      </button>
-                    </form>
+                    <button
+                      onClick={signOut}
+                      className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-hover"
+                    >
+                      <Icon name="logout" className="text-muted" />
+                      Sign out
+                    </button>
                   </div>
                 </div>
               )}
             </Menu>
           ) : (
             <a
-              href="/api/auth/login"
+              href={authorizeUrl(clientId)}
               className="ml-1 flex h-10 items-center rounded-[10px] bg-primary px-6 text-sm font-medium text-on-primary hover:shadow-md"
             >
               Sign in

@@ -1,17 +1,28 @@
-export async function anilistQuery<T>(query: string, variables: Record<string, unknown>, token?: string): Promise<T> {
+const DEFAULT_LIMIT_PER_MINUTE = 30;
+
+let nextRequestAt = 0;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+}
+
+export async function anilistQuery<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   for (;;) {
+    await sleep(nextRequestAt - Date.now());
     const res = await fetch("https://graphql.anilist.co", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: JSON.stringify({ query, variables }),
     });
+    const limit = Number(res.headers.get("X-RateLimit-Limit") ?? DEFAULT_LIMIT_PER_MINUTE);
+    const remaining = Number(res.headers.get("X-RateLimit-Remaining") ?? limit);
+    nextRequestAt = Date.now() + (remaining <= 1 ? 60_000 : 60_000 / limit);
+
     if (res.status === 429) {
-      const retryAfter = Number(res.headers.get("Retry-After") ?? 60);
-      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+      nextRequestAt = Date.now() + Number(res.headers.get("Retry-After") ?? 60) * 1000;
       continue;
     }
     const json = await res.json();
@@ -21,26 +32,6 @@ export async function anilistQuery<T>(query: string, variables: Record<string, u
     return json.data;
   }
 }
-
-export const VIEWER_QUERY = `
-  query {
-    Viewer { id name avatar { medium } }
-  }
-`;
-
-export const LIST_QUERY = `
-  query ($userId: Int) {
-    MediaListCollection(userId: $userId, type: ANIME, status_in: [CURRENT, PLANNING, PAUSED]) {
-      lists {
-        entries {
-          mediaId
-          status
-          progress
-        }
-      }
-    }
-  }
-`;
 
 export const AIRING_QUERY = `
   query ($page: Int, $from: Int, $to: Int) {

@@ -5,20 +5,21 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { eq } from "drizzle-orm";
 import * as schema from "./schema";
 
-const dbPath = process.env.DATABASE_PATH ?? "data/anime.db";
+const dbPath = process.env.DATABASE_PATH!;
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
-if ((sqlite.pragma("user_version", { simple: true }) as number) < 3) {
-  // everything stored before version 3 was single-user and is rebuilt by the next sync
+if ((sqlite.pragma("user_version", { simple: true }) as number) < 4) {
+  // the schedule is a cache rebuilt by the next sync; user data is no longer stored on the server
   sqlite.exec(`
-    DROP TABLE IF EXISTS settings;
     DROP TABLE IF EXISTS media;
     DROP TABLE IF EXISTS airing;
     DROP TABLE IF EXISTS list_entries;
+    DROP TABLE IF EXISTS sessions;
+    DROP TABLE IF EXISTS users;
   `);
-  sqlite.pragma("user_version = 3");
+  sqlite.pragma("user_version = 4");
 }
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS settings (
@@ -38,34 +39,17 @@ sqlite.exec(`
     genres TEXT NOT NULL,
     studio TEXT,
     site_url TEXT NOT NULL,
-    episodes INTEGER
+    episodes INTEGER,
+    fetched_at INTEGER NOT NULL
   );
   CREATE TABLE IF NOT EXISTS airing (
     id INTEGER PRIMARY KEY,
     media_id INTEGER NOT NULL,
     episode INTEGER NOT NULL,
-    airing_at INTEGER NOT NULL
+    airing_at INTEGER NOT NULL,
+    fetched_at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS airing_airing_at ON airing (airing_at);
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    avatar TEXT NOT NULL,
-    token TEXT NOT NULL,
-    token_expires_at INTEGER NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    expires_at INTEGER NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS list_entries (
-    user_id INTEGER NOT NULL,
-    media_id INTEGER NOT NULL,
-    list_status TEXT NOT NULL,
-    progress INTEGER NOT NULL,
-    PRIMARY KEY (user_id, media_id)
-  );
 `);
 
 export const db = drizzle(sqlite, { schema });

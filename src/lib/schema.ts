@@ -1,4 +1,4 @@
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
@@ -19,6 +19,7 @@ export const media = sqliteTable("media", {
   studio: text("studio"),
   siteUrl: text("site_url").notNull(),
   episodes: integer("episodes"),
+  fetchedAt: integer("fetched_at").notNull(),
 });
 
 export const airing = sqliteTable("airing", {
@@ -26,29 +27,5 @@ export const airing = sqliteTable("airing", {
   mediaId: integer("media_id").notNull(),
   episode: integer("episode").notNull(),
   airingAt: integer("airing_at").notNull(),
+  fetchedAt: integer("fetched_at").notNull(),
 });
-
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey(),
-  name: text("name").notNull(),
-  avatar: text("avatar").notNull(),
-  token: text("token").notNull(),
-  tokenExpiresAt: integer("token_expires_at").notNull(),
-});
-
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  expiresAt: integer("expires_at").notNull(),
-});
-
-export const listEntries = sqliteTable(
-  "list_entries",
-  {
-    userId: integer("user_id").notNull(),
-    mediaId: integer("media_id").notNull(),
-    listStatus: text("list_status").notNull(),
-    progress: integer("progress").notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.userId, t.mediaId] })],
-);

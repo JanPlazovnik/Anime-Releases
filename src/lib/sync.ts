@@ -1,15 +1,15 @@
-import { eq, notInArray } from "drizzle-orm";
-import { anilistQuery, AIRING_QUERY, LIST_QUERY } from "./anilist";
-import { decrypt } from "./crypto";
+import * as Sentry from "@sentry/nextjs";
+import { lt, notInArray, or } from "drizzle-orm";
+import { anilistQuery, AIRING_QUERY } from "./anilist";
 import { db, setSetting } from "./db";
 import { notifyChange, syncState } from "./events";
-import { airing, listEntries, media, users } from "./schema";
-import { pruneSessions } from "./session";
+import { airing, media } from "./schema";
 
 const DAY = 24 * 60 * 60;
 const PAST_DAYS = 30;
 const FUTURE_DAYS = 90;
 const PAGES_PER_NOTIFY = 10;
+const CACHE_TTL_MS = 7 * DAY * 1000;
 
 type AiringResponse = {
   Page: {
@@ -37,12 +37,6 @@ type AiringResponse = {
   };
 };
 
-type ListResponse = {
-  MediaListCollection: {
-    lists: { entries: { mediaId: number; status: string; progress: number }[] }[];
-  };
-};
-
 export function isSyncing() {
   return Boolean(syncState.syncRunning);
 }
@@ -59,8 +53,6 @@ export function syncAll() {
 }
 
 async function runSync() {
-  pruneSessions();
-
   try {
     await syncAiring();
     setSetting("lastSync", String(Date.now()));
@@ -68,11 +60,21 @@ async function runSync() {
   } catch (err) {
     setSetting("syncError", err instanceof Error ? err.message : String(err));
     console.error("Airing sync failed:", err);
+    Sentry.captureException(err);
+  } finally {
+    pruneCache();
   }
+}
 
-  for (const user of db.select({ id: users.id }).from(users).all()) {
-    await syncList(user.id).catch((err) => console.error(`List sync failed for user ${user.id}:`, err));
-  }
+function pruneCache() {
+  const cutoff = Date.now() - CACHE_TTL_MS;
+  const windowStart = Math.floor(Date.now() / 1000) - PAST_DAYS * DAY;
+  db.transaction((tx) => {
+    tx.delete(airing).where(or(lt(airing.fetchedAt, cutoff), lt(airing.airingAt, windowStart))).run();
+    tx.delete(media)
+      .where(or(lt(media.fetchedAt, cutoff), notInArray(media.id, tx.select({ id: airing.mediaId }).from(airing))))
+      .run();
+  });
 }
 
 async function syncAiring() {
@@ -101,13 +103,14 @@ async function syncAiring() {
           studio: s.media.studios.nodes[0]?.name ?? null,
           siteUrl: s.media.siteUrl,
           episodes: s.media.episodes,
+          fetchedAt: Date.now(),
         };
         tx.insert(media)
           .values({ id: s.media.id, ...details })
           .onConflictDoUpdate({ target: media.id, set: details })
           .run();
 
-        const row = { mediaId: s.media.id, episode: s.episode, airingAt: s.airingAt };
+        const row = { mediaId: s.media.id, episode: s.episode, airingAt: s.airingAt, fetchedAt: Date.now() };
         tx.insert(airing)
           .values({ id: s.id, ...row })
           .onConflictDoUpdate({ target: airing.id, set: row })
@@ -121,23 +124,4 @@ async function syncAiring() {
   }
 
   db.delete(airing).where(notInArray(airing.id, seen)).run();
-}
-
-export async function syncList(userId: number) {
-  const user = db.select().from(users).where(eq(users.id, userId)).get();
-  if (!user) return;
-
-  const list = await anilistQuery<ListResponse>(LIST_QUERY, { userId }, decrypt(user.token));
-  const entries = new Map<number, { status: string; progress: number }>();
-  for (const l of list.MediaListCollection.lists) {
-    for (const e of l.entries) entries.set(e.mediaId, e);
-  }
-
-  db.transaction((tx) => {
-    tx.delete(listEntries).where(eq(listEntries.userId, userId)).run();
-    for (const [mediaId, e] of entries) {
-      tx.insert(listEntries).values({ userId, mediaId, listStatus: e.status, progress: e.progress }).run();
-    }
-  });
-  notifyChange();
 }

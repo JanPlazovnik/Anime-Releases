@@ -3,10 +3,9 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { io } from "next/cache";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { db, getSetting } from "@/lib/db";
-import { airing, listEntries, media } from "@/lib/schema";
-import { getCurrentUser } from "@/lib/session";
+import { airing, media } from "@/lib/schema";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/site";
 import { isSyncing } from "@/lib/sync";
 import Calendar from "@/components/Calendar";
@@ -43,9 +42,8 @@ export default function Page() {
 
 async function Home() {
   await io();
-  const user = await getCurrentUser();
   const lastSync = Number(getSetting("lastSync") ?? 0);
-  const showAll = !user || (await cookies()).get("show")?.value === "all";
+  const showAll = (await cookies()).get("show")?.value === "all";
 
   const airings = db
     .select({ id: airing.id, mediaId: airing.mediaId, episode: airing.episode, airingAt: airing.airingAt })
@@ -72,20 +70,11 @@ async function Home() {
     .where(inArray(media.id, db.select({ id: airing.mediaId }).from(airing)))
     .all();
 
-  const entries = user
-    ? db
-        .select({ mediaId: listEntries.mediaId, listStatus: listEntries.listStatus, progress: listEntries.progress })
-        .from(listEntries)
-        .where(eq(listEntries.userId, user.id))
-        .all()
-    : [];
-
   return (
     <Calendar
       airings={airings}
       shows={shows}
-      entries={entries}
-      viewer={user}
+      clientId={process.env.ANILIST_CLIENT_ID!}
       initialShowAll={showAll}
       lastSync={lastSync}
       syncError={getSetting("syncError") ?? ""}
