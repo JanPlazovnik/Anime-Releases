@@ -1,48 +1,61 @@
-import { useState, type ReactNode } from "react";
-import { SWIPE_NAVIGATE_DISTANCE, useHorizontalDrag } from "./shared";
+import { startTransition, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+
+const SLIDES = 3;
+
+// Three looping slides show the previous, current and next page relative to the selected slide,
+// so paging only changes what each slide renders and never moves them.
+function slideOffset(slide: number, selected: number) {
+  return ((slide - selected + SLIDES + 1) % SLIDES) - 1;
+}
 
 export default function SwipePager({
   onChange,
   pageKey,
   renderPage,
 }: {
-  onChange: (direction: 1 | -1) => void;
-  pageKey: (offset: -1 | 0 | 1) => string;
-  renderPage: (offset: -1 | 0 | 1) => ReactNode;
+  onChange: (offset: number) => void;
+  pageKey: (offset: number) => string;
+  renderPage: (offset: number) => ReactNode;
 }) {
-  const [settling, setSettling] = useState(false);
-  const [target, setTarget] = useState<-1 | 0 | 1>(0);
-  const { attach, dragX, onTouchStart, onTouchEnd } = useHorizontalDrag((dx) => {
-    setTarget(Math.abs(dx) > SWIPE_NAVIGATE_DISTANCE ? (dx < 0 ? 1 : -1) : 0);
-    setSettling(true);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [selected, setSelected] = useState(0);
+  const target = useRef(0);
+
+  const onSelect = useEffectEvent(() => {
+    const next = emblaApi!.selectedScrollSnap();
+    const offset = slideOffset(next, target.current);
+    if (offset === 0) return;
+    target.current = next;
+    // A transition lets the new pages render in slices between the carousel's animation frames.
+    startTransition(() => {
+      setSelected(next);
+      onChange(offset);
+    });
   });
 
-  const finish = () => {
-    if (target !== 0) onChange(target);
-    setTarget(0);
-    setSettling(false);
-  };
+  useEffect(() => {
+    if (!emblaApi) return;
+    const handler = () => onSelect();
+    emblaApi.on("select", handler);
+    return () => {
+      emblaApi.off("select", handler);
+    };
+  }, [emblaApi]);
 
   return (
-    <div
-      ref={attach}
-      className="flex min-h-0 flex-1 touch-pan-y overflow-hidden"
-      onTouchStart={(e) => {
-        if (settling) finish();
-        onTouchStart(e);
-      }}
-      onTouchEnd={onTouchEnd}
-    >
-      <div
-        className={`flex min-h-0 w-[300%] shrink-0 ${settling ? "transition-transform duration-300 ease-out" : ""}`}
-        style={{ transform: `translateX(calc(${((-1 - target) * 100) / 3}% + ${dragX}px))` }}
-        onTransitionEnd={(e) => e.target === e.currentTarget && finish()}
-      >
-        {([-1, 0, 1] as const).map((offset) => (
-          <div key={pageKey(offset)} className="flex min-h-0 w-1/3 flex-col">
-            {renderPage(offset)}
-          </div>
-        ))}
+    <div ref={emblaRef} className="min-h-0 flex-1 overflow-hidden">
+      <div className="flex h-full touch-pan-y">
+        {Array.from({ length: SLIDES }, (_, slide) => {
+          const offset = slideOffset(slide, selected);
+          return (
+            <div key={slide} className="flex min-h-0 min-w-0 shrink-0 grow-0 basis-full flex-col">
+              <div key={pageKey(offset)} className="flex min-h-0 flex-1 flex-col">
+                {renderPage(offset)}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

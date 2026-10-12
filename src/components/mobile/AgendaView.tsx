@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, memo, useEffect, useState } from "react";
 import {
   addDays,
   dayKey,
@@ -39,35 +39,47 @@ function NowLine() {
   );
 }
 
-export function AgendaDay({ day, events, onSelect }: { day: Date; events: CalendarEvent[]; onSelect: OnSelect }) {
-  const isToday = dayKey(day) === dayKey(new Date());
-  const [now, setNow] = useState(() => Date.now() / 1000);
+export const AgendaDay = memo(
+  function AgendaDay({
+    day,
+    events,
+    onSelect,
+  }: {
+    day: Date;
+    events: CalendarEvent[];
+    onSelect: OnSelect;
+  }) {
+    const isToday = dayKey(day) === dayKey(new Date());
+    const [now, setNow] = useState(() => Date.now() / 1000);
 
-  useEffect(() => {
-    if (!isToday) return;
-    const interval = setInterval(() => setNow(Date.now() / 1000), 60 * 1000);
-    return () => clearInterval(interval);
-  }, [isToday]);
+    useEffect(() => {
+      if (!isToday) return;
+      const interval = setInterval(() => setNow(Date.now() / 1000), 60 * 1000);
+      return () => clearInterval(interval);
+    }, [isToday]);
 
-  const groups = groupEpisodes(events);
-  const upcomingIndex = groups.findIndex((group) => group.airingAt > now);
-  const nowIndex = isToday ? (upcomingIndex === -1 ? groups.length : upcomingIndex) : -1;
+    const groups = groupEpisodes(events);
+    const upcomingIndex = groups.findIndex((group) => group.airingAt > now);
+    const nowIndex = isToday ? (upcomingIndex === -1 ? groups.length : upcomingIndex) : -1;
 
-  return (
-    <div>
-      <h2 className={`px-2 pb-1 pt-3 text-xs font-medium uppercase ${isToday ? "text-primary" : "text-muted"}`}>
-        {day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}
-      </h2>
-      {groups.map((group, i) => (
-        <Fragment key={group.event.id}>
-          {i === nowIndex && <NowLine />}
-          <AgendaRow group={group} onSelect={onSelect} />
-        </Fragment>
-      ))}
-      {nowIndex === groups.length && <NowLine />}
-    </div>
-  );
-}
+    return (
+      <div>
+        <h2 className={`px-2 pb-1 pt-3 text-xs font-medium uppercase ${isToday ? "text-primary" : "text-muted"}`}>
+          {day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}
+        </h2>
+        {groups.map((group, i) => (
+          <Fragment key={group.event.id}>
+            {i === nowIndex && <NowLine />}
+            <AgendaRow group={group} onSelect={onSelect} />
+          </Fragment>
+        ))}
+        {nowIndex === groups.length && <NowLine />}
+      </div>
+    );
+  },
+  (prev, next) =>
+    dayKey(prev.day) === dayKey(next.day) && prev.events === next.events && prev.onSelect === next.onSelect,
+);
 
 export default function AgendaView({
   weekStart,

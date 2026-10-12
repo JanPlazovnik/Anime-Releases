@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { addDays, dayKey, groupEpisodes, startOfWeek, WEEKDAYS, type CalendarEvent } from "@/lib/calendar";
 import { STATUSES, type OnSelect } from "../shared";
 import { AgendaDay } from "./AgendaView";
@@ -16,7 +16,7 @@ export default function MonthView({
 }: {
   cursor: Date;
   byDay: Map<string, CalendarEvent[]>;
-  onPickDay: (day: Date) => void;
+  onPickDay: Dispatch<SetStateAction<Date>>;
   onSelect: OnSelect;
 }) {
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -130,7 +130,7 @@ export default function MonthView({
         <span className="h-1 w-8 rounded-full bg-chip" />
       </button>
       <SwipePager
-        onChange={(direction) => onPickDay(addDays(cursor, direction))}
+        onChange={(offset) => onPickDay((current) => addDays(current, offset))}
         pageKey={(offset) => dayKey(addDays(cursor, offset))}
         renderPage={(offset) => {
           const day = addDays(cursor, offset);
@@ -138,7 +138,7 @@ export default function MonthView({
           return (
             <div
               ref={offset === 0 ? listRef : undefined}
-              className={`flex-1 overscroll-contain px-2 ${NAV_CLEARANCE} ${collapsed && !collapsingGesture ? "overflow-y-auto" : "overflow-hidden"}`}
+              className={`flex-1 overscroll-y-contain px-2 ${NAV_CLEARANCE} ${collapsed && !collapsingGesture ? "overflow-y-auto" : "overflow-hidden"}`}
             >
               {events.length > 0 ? (
                 <AgendaDay day={day} events={events} onSelect={onSelect} />

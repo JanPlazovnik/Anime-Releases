@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import {
@@ -144,23 +144,30 @@ export default function Calendar({
       .finally(() => setSyncing(false));
   }
 
+  const entries = session?.entries;
+  const events = useMemo(() => {
+    const showsById = new Map(shows.map((show) => [show.id, show]));
+    const entriesByMedia = new Map((entries ?? []).map((entry) => [entry.mediaId, entry]));
+    return airings.map((a): CalendarEvent => {
+      const entry = entriesByMedia.get(a.mediaId);
+      return { ...showsById.get(a.mediaId)!, ...a, listStatus: entry?.listStatus ?? null, progress: entry?.progress ?? 0 };
+    });
+  }, [airings, shows, entries]);
+
+  const signedIn = session !== null;
+  const byDay = useMemo(() => {
+    const visible = events.filter((e) => (e.listStatus ? enabled.has(e.listStatus) : showAll || !signedIn));
+    const days = new Map<string, CalendarEvent[]>();
+    for (const e of visible) {
+      const key = dayKey(new Date(e.airingAt * 1000));
+      days.set(key, [...(days.get(key) ?? []), e]);
+    }
+    return days;
+  }, [events, enabled, showAll, signedIn]);
+
   if (!isClient) return null;
 
   const viewer = session?.viewer ?? null;
-  const entries = session?.entries ?? [];
-  const showsById = new Map(shows.map((show) => [show.id, show]));
-  const entriesByMedia = new Map(entries.map((entry) => [entry.mediaId, entry]));
-  const events: CalendarEvent[] = airings.map((a) => {
-    const entry = entriesByMedia.get(a.mediaId);
-    return { ...showsById.get(a.mediaId)!, ...a, listStatus: entry?.listStatus ?? null, progress: entry?.progress ?? 0 };
-  });
-
-  const visible = events.filter((e) => (e.listStatus ? enabled.has(e.listStatus) : showAll || !viewer));
-  const byDay = new Map<string, CalendarEvent[]>();
-  for (const e of visible) {
-    const key = dayKey(new Date(e.airingAt * 1000));
-    byDay.set(key, [...(byDay.get(key) ?? []), e]);
-  }
 
   const step = (dir: number) => {
     setCursor(
