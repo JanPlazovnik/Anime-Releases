@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ChevronDown, ExternalLink, X } from "lucide-react";
 import { episodeRange, formatTime, type CalendarEvent } from "@/lib/calendar";
 import { STATUSES } from "./shared";
 
@@ -28,25 +28,21 @@ function loadDescription(mediaId: number) {
   return description;
 }
 
-// In a sheet, the sheet's snap point decides how much of the description shows instead of a toggle.
+// Without close (the mobile sheet, dismissed by swiping), the header buttons give way to a full-width AniList action.
 export default function EventDetails({
   event,
   firstEpisode,
   close,
-  sheetExpanded,
 }: {
   event: CalendarEvent;
   firstEpisode: number;
-  close: () => void;
-  sheetExpanded?: boolean;
+  close?: () => void;
 }) {
   const [description, setDescription] = useState<string | null>();
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [coverLoaded, setCoverLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [fullHeight, setFullHeight] = useState(0);
-  const inSheet = sheetExpanded !== undefined;
-  const showFull = inSheet ? sheetExpanded : expanded;
 
   useEffect(() => {
     loadDescription(event.mediaId).then(setDescription);
@@ -78,24 +74,26 @@ export default function EventDetails({
           <div className={`h-full w-full ${status?.dot ?? "bg-other"} opacity-60`} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute right-2 top-2 flex gap-1">
-          <a
-            href={event.siteUrl}
-            target="_blank"
-            rel="noreferrer"
-            title="Open on AniList"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
-          >
-            <ExternalLink className="h-5 w-5" />
-          </a>
-          <button
-            onClick={close}
-            title="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        {close && (
+          <div className="absolute right-2 top-2 flex gap-1">
+            <a
+              href={event.siteUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Open on AniList"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+            >
+              <ExternalLink className="h-5 w-5" />
+            </a>
+            <button
+              onClick={close}
+              title="Close"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4 px-5">
@@ -122,7 +120,7 @@ export default function EventDetails({
         </div>
       </div>
 
-      <div className={`flex flex-col gap-3 px-5 py-4 text-sm ${inSheet ? "" : "min-h-0 overflow-y-auto"}`}>
+      <div className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain px-5 py-4 text-sm">
         <div className="flex select-none flex-wrap items-center gap-1.5">
           {status && (
             <span className="flex items-center gap-1.5 rounded-md bg-chip px-2.5 py-0.5 text-xs font-medium">
@@ -151,30 +149,53 @@ export default function EventDetails({
         {description && (
           <div>
             <p
-              data-sheet-expandable
               ref={(el) => {
                 if (el) setFullHeight(el.scrollHeight);
               }}
+              onClick={close ? undefined : () => setExpanded(!expanded)}
               className={`overflow-clip whitespace-pre-line text-muted transition-[max-height] duration-300 ease-out ${
-                !showFull && fullHeight > DESCRIPTION_COLLAPSED_HEIGHT
+                !expanded && fullHeight > DESCRIPTION_COLLAPSED_HEIGHT
                   ? "[mask-image:linear-gradient(to_bottom,black_60%,transparent)]"
                   : ""
               }`}
-              style={{ maxHeight: showFull ? fullHeight : DESCRIPTION_COLLAPSED_HEIGHT }}
+              style={{ maxHeight: expanded ? fullHeight : DESCRIPTION_COLLAPSED_HEIGHT }}
             >
               {description}
             </p>
-            {!inSheet && fullHeight > DESCRIPTION_COLLAPSED_HEIGHT && (
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="mt-1 text-xs font-medium text-primary hover:underline"
-              >
-                {expanded ? "Show less" : "Show more"}
-              </button>
-            )}
+            {fullHeight > DESCRIPTION_COLLAPSED_HEIGHT &&
+              (close ? (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="mt-1 text-xs font-medium text-primary hover:underline"
+                >
+                  {expanded ? "Show less" : "Show more"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="mt-2 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-chip text-sm font-medium"
+                >
+                  {expanded ? "Show less" : "Show more"}
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} />
+                </button>
+              ))}
           </div>
         )}
       </div>
+
+      {!close && (
+        <div className="shrink-0 border-t border-line px-5 py-3">
+          <a
+            href={event.siteUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-chip text-sm font-medium"
+          >
+            Open on AniList
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+      )}
     </>
   );
 }

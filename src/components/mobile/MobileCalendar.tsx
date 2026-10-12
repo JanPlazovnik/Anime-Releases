@@ -239,14 +239,7 @@ export default function MobileCalendar({
 
       {selected && selectedEvent && (
         <Sheet key={selected.id} label={selectedEvent.title} onClose={() => setSelected(null)}>
-          {(close, expanded) => (
-            <EventDetails
-              event={selectedEvent}
-              firstEpisode={selected.firstEpisode ?? selectedEvent.episode}
-              close={close}
-              sheetExpanded={expanded}
-            />
-          )}
+          <EventDetails event={selectedEvent} firstEpisode={selected.firstEpisode ?? selectedEvent.episode} />
         </Sheet>
       )}
     </div>

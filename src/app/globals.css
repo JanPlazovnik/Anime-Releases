@@ -106,16 +106,6 @@ body {
   animation: progress-slide 1.2s ease-in-out infinite;
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 250ms ease-out;
-}
-
 .animate-popover-in {
   animation: popover-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
 }
